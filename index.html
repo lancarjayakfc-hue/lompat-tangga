@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Game Lompat Tangga Sederhana</title>
+  <style>
+    body { background: #eaf6fa; margin: 0; }
+    #gameArea {
+      background: #fff;
+      width: 400px;
+      height: 600px;
+      margin: 40px auto;
+      border: 2px solid #000;
+      overflow: hidden;
+      position: relative;
+    }
+    #player {
+      width: 40px; height: 40px;
+      background: #3498db;
+      border-radius: 8px;
+      position: absolute;
+      left: 180px; top: 500px;
+    }
+    .platform {
+      position: absolute;
+      width: 90px; height: 15px;
+      background: #16a085;
+      border-radius: 5px;
+    }
+    #score { 
+      position: absolute; left: 10px; top: 10px;
+      font-family: Arial, sans-serif; color: #333;
+      font-size: 22px;
+      z-index: 2;
+    }
+    #gameOver {
+      display: none;
+      position: absolute;
+      width: 100%;
+      top: 42%;
+      text-align: center;
+      font-size: 28px;
+      background: rgba(255,255,255,0.92);
+      font-family: Arial;
+      padding: 30px 0;
+    }
+    #restart {
+      background: #2ecc71;
+      color: white;
+      border: none;
+      padding: 12px 36px;
+      margin-top: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameArea">
+    <div id="score">Skor: 0</div>
+    <div id="gameOver">
+      <div>Game Over!</div>
+      <button id="restart">RESTART</button>
+    </div>
+    <div id="player"></div>
+  </div>
+  <script>
+    // Ukuran kanvas
+    const gameArea = document.getElementById('gameArea');
+    const player = document.getElementById('player');
+    const scoreDiv = document.getElementById('score');
+    const gameOverDiv = document.getElementById('gameOver');
+    const restartBtn = document.getElementById('restart');
+
+    const areaWidth = 400, areaHeight = 600;
+    const playerWidth = 40, playerHeight = 40;
+    const platformWidth = 90, platformHeight = 15;
+    const gravity = 0.48, jumpVelocity = -12.6;
+    let platforms = [];
+    let playerX, playerY, velocityY;
+    let score;
+    let isGameOver = false;
+
+    function resetGame() {
+      // Reset player, platforms, score
+      playerX = areaWidth/2 - playerWidth/2;
+      playerY = areaHeight - playerHeight - 10;
+      velocityY = 0;
+      score = 0;
+      scoreDiv.textContent = 'Skor: 0';
+      isGameOver = false;
+      gameOverDiv.style.display = 'none';
+
+      // Hapus platform lama
+      platforms.forEach(p => p.elem.remove());
+      platforms = [];
+      for (let i=0; i<8; i++) {
+        let px = Math.random() * (areaWidth - platformWidth);
+        let py = areaHeight - i*80;
+        spawnPlatform(px, py);
+      }
+      update();
+    }
+
+    function spawnPlatform(x, y) {
+      const plat = document.createElement('div');
+      plat.className = 'platform';
+      plat.style.left = x + 'px';
+      plat.style.top = y + 'px';
+      gameArea.appendChild(plat);
+      platforms.push({x, y, elem: plat});
+    }
+
+    function update() {
+      if (isGameOver) return;
+
+      // Gerakan player
+      velocityY += gravity;
+      playerY += velocityY;
+
+      // Kiri kanan kontrol
+      if (keys['ArrowLeft'] || keys['a']) playerX -= 5;
+      if (keys['ArrowRight'] || keys['d']) playerX += 5;
+      if (playerX < 0) playerX = 0;
+      if (playerX > areaWidth-playerWidth) playerX = areaWidth-playerWidth;
+
+      // Collision dengan platform (cuma waktu jatuh)
+      if (velocityY > 0) {
+        platforms.forEach(pl => {
+          if (playerX + playerWidth > pl.x && playerX < pl.x + platformWidth &&
+              playerY + playerHeight > pl.y && playerY + playerHeight < pl.y + platformHeight + 7) {
+            // Agar tidak nempel di bawah
+            velocityY = jumpVelocity;
+            score += 1;
+            scoreDiv.textContent = 'Skor: ' + score;
+          }
+        });
+      }
+
+      // Kalau sudah terlalu naik, latar & platform turun, player tetap
+      if (playerY < areaHeight/3) {
+        let dy = (areaHeight/3 - playerY);
+        playerY = areaHeight/3;
+        platforms.forEach(pl => {
+          pl.y += dy;
+        });
+      }
+
+      // Update platform, respawn bila keluar bawah
+      platforms.forEach(pl => {
+        pl.elem.style.top = pl.y + 'px';
+        pl.elem.style.left = pl.x + 'px';
+        if (pl.y > areaHeight) {
+          pl.x = Math.random() * (areaWidth - platformWidth);
+          pl.y = Math.random() * -60 - 10;
+        }
+      });
+
+      // Update posisi player
+      player.style.left = playerX + 'px';
+      player.style.top = playerY + 'px';
+
+      // Game over kondisi
+      if (playerY > areaHeight) {
+        isGameOver = true;
+        gameOverDiv.style.display = 'block';
+        return;
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    // Input kontrol
+    let keys = {};
+    document.addEventListener('keydown', e => keys[e.key] = true);
+    document.addEventListener('keyup', e => keys[e.key] = false);
+
+    restartBtn.addEventListener('click', resetGame);
+
+    // Mulai game
+    resetGame();
+  </script>
+</body>
+</html>
